@@ -1,5 +1,6 @@
 const express = require('express') //built-in Node's web server module
 const app = express()
+app.use(express.static('build'))
 
 //express json-parser
 app.use(express.json())
