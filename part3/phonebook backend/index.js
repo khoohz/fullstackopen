@@ -4,6 +4,7 @@ const express = require('express') //built-in Node's web server module
 const bodyParser = require('body-parser') 
 const app = express()
 
+app.use(express.json())
 app.use(express.static('build'))
 app.use(bodyParser.json())
 
@@ -56,7 +57,7 @@ app.get('/api/persons', (request, response) => {
 //     return newId
 // }
 
-app.post('/api/persons', (request, response) => {
+app.post('/api/persons', (request, response, next) => {
     
     const body = request.body
 
@@ -104,13 +105,9 @@ app.delete('/api/persons/:id', (request, response, next) => {
 
     Person.findByIdAndRemove(request.params.id)
         .then(result => {
-            if (result) {
-                console.log("succeed")
-            } else {
-                console.log("failed")
-            }
+            response.status(204).end()
       })
-
+      .catch(error => next(error))
 })
 
 
