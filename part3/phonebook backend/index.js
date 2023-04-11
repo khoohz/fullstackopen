@@ -4,8 +4,8 @@ const express = require('express') //built-in Node's web server module
 const bodyParser = require('body-parser') 
 const app = express()
 
-app.use(express.json())
 app.use(express.static('build'))
+app.use(express.json())
 app.use(bodyParser.json())
 
 const morgan = require('morgan')
@@ -22,16 +22,17 @@ const Person = require('./models/person')
 
 let persons = []
 
-
 app.get('/info', (request, response) => {
     const currentTime = Date().toLocaleString()
-
-    response.send(
-        `<div>
-            <div>Phonebook has info for ${persons.length} people</div>
-            <div>${currentTime}</div>
-        </div>`
-    )
+    
+    Person.find({}).then(persons => {
+        response.send(
+            `<div>
+                <div>Phonebook has info for ${persons.length} people</div>
+                <div>${currentTime}</div>
+            </div>`
+        )
+    })
 })
 
 app.get('/api/persons', (request, response) => {
@@ -40,39 +41,22 @@ app.get('/api/persons', (request, response) => {
 })})
 
 
-
-// const maxId = () => {
-//     const maxId = persons.length > 0
-//         ? Math.max(...persons.map(id => id.id))
-//         : 0
-//     return maxId
-// }
-
-
-
-// const generateId = () => {
-//     const min = Math.ceil(maxId() + 1)
-//     const max = Math.floor(1000)
-//     const newId = Math.floor(Math.random() * (max - min) + min)
-//     return newId
-// }
-
 app.post('/api/persons', (request, response, next) => {
     
     const body = request.body
 
-    if(body.name === undefined){
-        return response.status(404).json({ 
-            error: 'name missing' 
-        })}
-    else if(body.number === undefined){
-        return response.status(404).json({ 
-            error: 'number missing' 
-        })}
-    else if(persons.find(persons => persons.name === body.name && persons.name.length > 0)){
-        return response.status(404).json({ 
-            error: 'name must be unique'
-        })}
+    // if(body.name === undefined){
+    //     return response.status(404).json({ 
+    //         error: 'name missing' 
+    //     })}
+    // else if(body.number === undefined){
+    //     return response.status(404).json({ 
+    //         error: 'number missing' 
+    //     })}
+    // else if(persons.find(persons => persons.name === body.name && persons.name.length > 0)){
+    //     return response.status(404).json({ 
+    //         error: 'name must be unique'
+    //     })}
 
     const person = new Person({
         name: body.name,
@@ -90,9 +74,9 @@ app.post('/api/persons', (request, response, next) => {
 
 app.get('/api/persons/:id', (request, response, next) => {
     Person.findById(request.params.id)
-        .then(note => {
-            if (note) {
-            response.json(note.toJSON())
+        .then(person => {
+            if (person) {
+            response.json(person.toJSON())
             } else {
             response.status(404).end()
             }
@@ -106,17 +90,30 @@ app.delete('/api/persons/:id', (request, response, next) => {
     Person.findByIdAndRemove(request.params.id)
         .then(result => {
             response.status(204).end()
-      })
-      .catch(error => next(error))
+        })
+        .catch(error => next(error))
 })
 
+app.put('/api/persons/:id', (request, response, next) => {
+    const {name, number} = request.body
+  
+    Person.findByIdAndUpdate(request.params.id, {name, number}, {new: true, runValidators: true, context: 'query'})
+        .then(updatedPerson => {
+            response.json(updatedPerson.toJSON())
+        })
+        .catch(error => next(error))
+  })
 
+
+// handler of requests with unknown endpoint (placed after all HTTP request handler)
 const unknownEndpoint = (request, response) => {
     response.status(404).send({ error: 'unknown endpoint' })
 }
 
 app.use(unknownEndpoint)
 
+
+// handler of requests with result to errors
 const errorHandler = (error, request, response, next) => {
     console.error(error.message)
   
