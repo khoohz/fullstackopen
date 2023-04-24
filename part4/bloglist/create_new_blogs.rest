@@ -6,8 +6,6 @@ Content-type: application/json
 
 {
         "title": "Hi everyone",
-        "author": "luke",
-        "url": "https",
         "likes": 123
 
 }
