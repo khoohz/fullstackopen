@@ -1,4 +1,5 @@
 const Blog = require('../models/blog')
+const User = require('../models/user')
 
 const initialBlogs = [
   {
@@ -51,6 +52,7 @@ const initialBlogs = [
   }
 ]
 
+
 //creating db object ID that does note belong to any note obj in db
 const nonExistingId = async () => {
   const blog = new Blog({ content: 'willremovethissoon' })
@@ -66,6 +68,12 @@ const blogsInDb = async () => {
   return blogs.map(blog => blog.toJSON())
 }
 
+const usersInDb = async () => {
+  const users = await User.find({})
+  return users.map(user => user.toJSON())
+}
+
+
 module.exports = {
-  initialBlogs, nonExistingId, blogsInDb
+  initialBlogs, nonExistingId, blogsInDb, usersInDb
 }

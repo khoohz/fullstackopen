@@ -3,9 +3,16 @@ GET http://localhost:3003/api/blogs/
 ###
 POST http://localhost:3003/api/blogs/  
 Content-type: application/json
+Authorization: bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImtpbmdqYW1lcyIsImlkIjoiNjQ0N2MwYTI1ODMwMGQwOTEyZjE4OWFiIiwiaWF0IjoxNjgzMTg2NDM5LCJleHAiOjE2ODMxOTAwMzl9.Q8SntxN-Eej3POVOLJ5-2Cdv60YZbozpUKUpK94DYho
 
 {
-        "title": "Hi everyone",
-        "likes": 123
-
+        "title": "Hi woman",
+        "author": "Michael Chan",
+        "url": "https://reactpatterns.com/",
+        "likes": 7,
+        "userId": "6447c0a258300d0912f189ab"
 }
+
+###
+DELETE http://localhost:3003/api/blogs/645367b4bd5a6148a67354cd
+Authorization: bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImtpbmdqYW1lcyIsImlkIjoiNjQ0N2MwYTI1ODMwMGQwOTEyZjE4OWFiIiwiaWF0IjoxNjgzMTg2NDM5LCJleHAiOjE2ODMxOTAwMzl9.Q8SntxN-Eej3POVOLJ5-2Cdv60YZbozpUKUpK94DYho

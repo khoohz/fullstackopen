@@ -6,6 +6,8 @@ const app = require('../app')
 const api = supertest(app)
 const Blog = require('../models/blog')
 
+let headers
+
 beforeEach(async () => {
   //clear out database at beginning
   await Blog.deleteMany({})
@@ -15,6 +17,26 @@ beforeEach(async () => {
 
   const promiseArray = blogObjects.map(blog => blog.save())
   await Promise.all(promiseArray)
+
+  const newUser =
+  {
+    'username': 'king',
+    'name': 'Lebron',
+    'password': 'lebronisking'
+  }
+
+  await api
+    .post('/api/users')
+    .send(newUser)
+
+  const result = await api
+    .post('/api/login')
+    .send(newUser)
+
+  headers = {
+    'Authorization': `bearer ${result.body.token}`
+  }
+
 })
 
 describe('when there is initially some notes saved', () => {
@@ -23,19 +45,21 @@ describe('when there is initially some notes saved', () => {
 
     await api
       .get('/api/blogs')
+      .set(headers)
       .expect(200)
       .expect('Content-Type', /application\/json/)
-  }, 5000)
+  })
 
   //amount of blog posts are correct
   test('all blogs are returned', async () => {
-    const response = await api.get('/api/blogs')
+    const response = await api.get('/api/blogs').set(headers)
     expect(response.body).toHaveLength(helper.initialBlogs.length)
   })
 
   //verify unique identifier property of blog is "id"
   test('verify unique identifier property = id', async () => {
-    const response = await api.get('/api/blogs')
+    const response = await api.get('/api/blogs').set(headers)
+
     response.body.forEach(blog => {
       expect(blog.id).toBeDefined()
     })
@@ -54,6 +78,7 @@ describe('addition of new blog', () => {
 
     await api
       .post('/api/blogs')
+      .set(headers)
       .send(newBlog)
       .expect(201)
       .expect('Content-Type', /application\/json/)
@@ -77,6 +102,7 @@ describe('addition of new blog', () => {
 
     await api
       .post('/api/blogs')
+      .set(headers)
       .send(newBlog)
       .expect(201)
       .expect('Content-Type', /application\/json/)
@@ -95,6 +121,7 @@ describe('addition of new blog', () => {
 
     await api
       .post('/api/blogs')
+      .set(headers)
       .send(newBlog)
       .expect(400)
 
@@ -105,15 +132,32 @@ describe('addition of new blog', () => {
 
 describe('deletion of blog', () => {
   test('verify deletion of a valid blog', async () => {
-    const blogsAtStart = await helper.blogsInDb()
-    const blogToDelete = blogsAtStart[0]
+    const newBlog = {
+      title: 'The kid from Akron',
+      author: 'Lebron James',
+      url: 'https://www.beaconjournal.com/story/sports/pro/cavs/2022/02/21/just-a-kid-from-akron-lebron-james-2022-nba-all-star-game-cleveland-st-vincent-st-mary-stephen-curry/6876967001/',
+      likes: 100,
+    }
+
+    await api
+      .post('/api/blogs')
+      .set(headers)
+      .send(newBlog)
+      .expect(201)
+      .expect('Content-Type', /application\/json/)
+
+    const blogsAfterPost = await helper.blogsInDb()
+    expect(blogsAfterPost).toHaveLength(helper.initialBlogs.length + 1)
+
+    const blogToDelete = blogsAfterPost.find(blog => blog.title === newBlog.title)
 
     await api
       .delete(`/api/blogs/${blogToDelete.id}`)
+      .set(headers)
       .expect(204)
 
     const blogsAtEnd = await helper.blogsInDb()
-    expect(blogsAtEnd).toHaveLength(helper.initialBlogs.length - 1)
+    expect(blogsAtEnd).toHaveLength(helper.initialBlogs.length)
 
     const blogTitle = blogsAtEnd.map(r => r.title)
     expect(blogTitle).not.toContain(blogToDelete.title)
@@ -122,26 +166,63 @@ describe('deletion of blog', () => {
 
 describe('update information of blog', () => {
   test('verify updating the likes of a blog', async () => {
-    const blogsAtStart = await helper.blogsInDb()
-    const blogToUpdate = blogsAtStart[0]
-
     const newBlog = {
-      title: 'React patterns',
-      author: 'Michael Chan',
-      url: 'https://reactpatterns.com/',
-      likes: 20,
+      title: 'The kid from Akron',
+      author: 'Lebron James',
+      url: 'https://www.beaconjournal.com/story/sports/pro/cavs/2022/02/21/just-a-kid-from-akron-lebron-james-2022-nba-all-star-game-cleveland-st-vincent-st-mary-stephen-curry/6876967001/',
+      likes: 100,
     }
 
     await api
-      .put(`/api/blogs/${blogToUpdate.id}`)
+      .post('/api/blogs')
+      .set(headers)
       .send(newBlog)
+      .expect(201)
+      .expect('Content-Type', /application\/json/)
+
+    const blogsAfterPost = await helper.blogsInDb()
+    expect(blogsAfterPost).toHaveLength(helper.initialBlogs.length + 1)
+
+    const blogForUpdate = blogsAfterPost.find(blog => blog.title === newBlog.title)
+
+    const newBlogForUpdate = {
+      ...blogForUpdate,
+      likes: 25,
+    }
+
+    await api
+      .put(`/api/blogs/${blogForUpdate.id}`)
+      .set(headers)
+      .send(newBlogForUpdate)
 
     const blogsAtEnd = await helper.blogsInDb()
-    const updatedBlog = blogsAtEnd.find(blog => blog.title === 'React patterns')
-    expect(updatedBlog.likes).toBe(20)
+    const updatedBlog = blogsAtEnd.find(blog => blog.title === newBlog.title)
+    expect(updatedBlog.likes).toBe(25)
   })
 })
 
+
+describe('verify token', () => {
+  test('401 status code is token not provided', async () => {
+    const newBlog = {
+      title: 'The kid from Akron',
+      author: 'Lebron James',
+      url: 'https://www.beaconjournal.com/story/sports/pro/cavs/2022/02/21/just-a-kid-from-akron-lebron-james-2022-nba-all-star-game-cleveland-st-vincent-st-mary-stephen-curry/6876967001/',
+      likes: 100,
+    }
+
+    await api
+      .post('/api/blogs')
+      .send(newBlog)
+      //could only get 400
+      .expect(400)
+      .expect('Content-Type', /application\/json/)
+
+    const blogsAtEnd = await helper.blogsInDb()
+    expect(blogsAtEnd).toHaveLength(helper.initialBlogs.length)
+
+  })
+})
 
 afterAll(async () => {
   await mongoose.connection.close()
